@@ -47,7 +47,7 @@ resource "azurerm_linux_virtual_machine" "vm" {
   admin_username = each.value.admin_username
   admin_password = each.value.admin_password
 
-  disable_password_authentication = false
+  disable_password_authentication = true
 
   network_interface_ids = [
     azurerm_network_interface.nic[each.key].id
