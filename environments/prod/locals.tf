@@ -17,7 +17,7 @@ locals {
 
   resource_groups = {
     "rg_01" = {
-      name     = "${local.prefix}-rg-01"
+      name     = "${local.prefix}-rg-app-01"
       location = local.location
       tags     = local.common_tags
     }
@@ -25,7 +25,7 @@ locals {
 
   virtual_networks = {
     "vnet_01" = {
-      name                = "${local.prefix}-vnet-01"
+      name                = "${local.prefix}-vnet-app-01"
       resource_group_name = local.resource_groups.rg_01.name
       location            = local.location
       address_space       = ["10.1.0.0/16"]
