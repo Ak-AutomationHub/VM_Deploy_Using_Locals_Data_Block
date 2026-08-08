@@ -28,13 +28,13 @@ module "public_ip" {
   depends_on = [module.resource_group]
 }
 
-module "virtual_machine" {
-  source = "../../modules/azurerm_virtual_machine"
+# module "virtual_machine" {
+#   source = "../../modules/azurerm_virtual_machine"
 
-  virtual_machines = local.virtual_machines
+#   virtual_machines = local.virtual_machines
 
-  depends_on = [
-    module.subnet,
-    module.public_ip
-  ]
-}
+#   depends_on = [
+#     module.subnet,
+#     module.public_ip
+#   ]
+# }
