@@ -41,6 +41,14 @@ locals {
       resource_group_name  = local.resource_groups.rg_01.name
 
     }
+
+    "snet_app_02" = {
+      name                 = "${local.prefix}-snet-app-02"
+      virtual_network_name = local.virtual_networks.vnet_01.name
+      address_prefixes     = ["10.1.2.0/24"]
+      resource_group_name  = local.resource_groups.rg_01.name
+
+    }
   }
 
   public_ips = {
