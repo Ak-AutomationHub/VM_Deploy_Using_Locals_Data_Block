@@ -1,17 +1,12 @@
-name: Terraform Feature Branch - Addition new subnet
+name: Terraform Feature Branch - Plan
 
 on:
   push:
     branches:
       - "feature/**"
 
-permissions:
-  contents: read
-  id-token: write
-
 jobs:
   terraform-plan:
-    name: Terraform Plan
     runs-on: ubuntu-latest
 
     defaults:
@@ -20,34 +15,31 @@ jobs:
 
     steps:
 
-      # Step 1: Checkout repository
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # Step 2: Install Terraform
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
-      # Step 3: Login to Azure using OIDC
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Azure Login Using Service Principal
+        run: |
+          az login \
+            --service-principal \
+            --username "06af6e6f-6ae8-453b-a6b0-45da51045af3" \
+            --password "Xo.8Q~RwPrQunA19YJTdqwKRZPEyXDZ3nl89-cjk" \
+            --tenant "91695fd6-371b-4c10-8dc9-21e31d347ad6"
 
-      # Step 4: Check Terraform formatting
+          az account set \
+            --subscription "b299f192-d573-4040-b542-2aff90a974b5"
+
       - name: Terraform Format Check
         run: terraform fmt -check -recursive
 
-      # Step 5: Initialize Terraform
       - name: Terraform Init
         run: terraform init -input=false
 
-      # Step 6: Validate Terraform code
       - name: Terraform Validate
         run: terraform validate
 
-      # Step 7: Terraform Plan ONLY
       - name: Terraform Plan
         run: terraform plan -input=false -no-color
