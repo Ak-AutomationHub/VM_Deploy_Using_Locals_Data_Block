@@ -25,8 +25,8 @@ jobs:
         run: |
           az login \
             --service-principal \
-            --username "06af6e6f-6ae8-453b-a6b0-45da51045af3" \
-            --password "Xo.8Q~RwPrQunA19YJTdqwKRZPEyXDZ3nl89-cjk" \
+            --username "d9bc2374-158d-4c21-8c6a-ce6fa1b4a924" \
+            --password "xVF8Q~z.lN6HVQgnOhX1UFSu7LG6u7mSEviWFaM3" \
             --tenant "91695fd6-371b-4c10-8dc9-21e31d347ad6"
 
           az account set \
