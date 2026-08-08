@@ -120,9 +120,9 @@ jobs:
       - name: Terraform Format Check
         run: terraform fmt -check -recursive
 
-      # --------------------------------------------------------
+      # ---------------------------------------------------------
       # TERRAFORM INIT
-      # --------------------------------------------------------
+      # ---------------------------------------------------------
       - name: Terraform Init
         run: terraform init -input=false
 
