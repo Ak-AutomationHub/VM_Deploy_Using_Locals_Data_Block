@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - "feature/**"
+      - "main"
 
 jobs:
 
@@ -96,9 +97,9 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
-      # ---------------------------------------------------------
+      # --------------------------------------------------------
       # AZURE LOGIN
-      # ---------------------------------------------------------
+      # --------------------------------------------------------
       - name: Azure Login Using Service Principal
         run: |
           az login \
@@ -114,15 +115,15 @@ jobs:
       - name: Verify Azure Login
         run: az account show --output table
 
-      # ---------------------------------------------------------
+      # --------------------------------------------------------
       # TERRAFORM FORMAT
-      # ---------------------------------------------------------
+      # --------------------------------------------------------
       - name: Terraform Format Check
         run: terraform fmt -check -recursive
 
-      # ---------------------------------------------------------
+      # --------------------------------------------------------
       # TERRAFORM INIT
-      # ---------------------------------------------------------
+      # --------------------------------------------------------
       - name: Terraform Init
         run: terraform init -input=false
 
@@ -136,4 +137,75 @@ jobs:
       # TERRAFORM PLAN
       # --------------------------------------------------------
       - name: Terraform Plan
-        run: terraform plan -input=false -no-color
+        run: terraform plan -input=false -no-color -out=tfplan
+
+      # --------------------------------------------------------
+      # UPLOAD PLAN FILE (for apply stage on main)
+      # --------------------------------------------------------
+      - name: Upload Plan Artifact
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: environments/prod/tfplan
+          retention-days: 1
+
+
+  # ============================================================
+  # STAGE 3 - TERRAFORM APPLY (runs only when merged into main)
+  # ============================================================
+  terraform-apply:
+    name: Terraform Apply
+    runs-on: ubuntu-latest
+
+    needs: terraform-plan
+    if: github.ref == 'refs/heads/main'
+
+    defaults:
+      run:
+        working-directory: environments/prod
+
+    steps:
+
+      # Checkout Code
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # Setup Terraform
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      # --------------------------------------------------------
+      # AZURE LOGIN
+      # --------------------------------------------------------
+      - name: Azure Login Using Service Principal
+        run: |
+          az login \
+            --service-principal \
+            --username "d9bc2374-158d-4c21-8c6a-ce6fa1b4a924" \
+            --password "xVF8Q~z.lN6HVQgnOhX1UFSu7LG6u7mSEviWFaM3" \
+            --tenant "91695fd6-371b-4c10-8dc9-21e31d347ad6"
+
+          az account set \
+            --subscription "b299f192-d573-4040-b542-2aff90a974b5"
+
+      # --------------------------------------------------------
+      # TERRAFORM INIT
+      # --------------------------------------------------------
+      - name: Terraform Init
+        run: terraform init -input=false
+
+      # --------------------------------------------------------
+      # DOWNLOAD PLAN FILE
+      # --------------------------------------------------------
+      - name: Download Plan Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan
+          path: environments/prod
+
+      # --------------------------------------------------------
+      # TERRAFORM APPLY
+      # --------------------------------------------------------
+      - name: Terraform Apply
+        run: terraform apply -input=false -auto-approve tfplan
