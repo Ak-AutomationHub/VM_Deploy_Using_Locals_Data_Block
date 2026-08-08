@@ -114,9 +114,9 @@ jobs:
       - name: Verify Azure Login
         run: az account show --output table
 
-      # --------------------------------------------------------
+      # ---------------------------------------------------------
       # TERRAFORM FORMAT
-      # --------------------------------------------------------
+      # ---------------------------------------------------------
       - name: Terraform Format Check
         run: terraform fmt -check -recursive
 
