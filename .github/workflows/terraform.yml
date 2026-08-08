@@ -1,253 +1,53 @@
-name: Terraform DevSecOps Pipeline
+name: Terraform Feature Branch - Addition new subnet
 
 on:
   push:
     branches:
-      - main
-      - 'feature/*'
-  pull_request:
-    branches:
-      - main
-      - 'feature/*'
+      - "feature/**"
 
-env:
-  WORKING_DIR: 'terraform/environments/dev'
-  BACKEND_RESOURCE_GROUP: 'rg-pipeline-ak'
-  BACKEND_STORAGE_ACCOUNT: 'strgadopipeline0107'
-  BACKEND_CONTAINER: 'adopipelinecontainer'
-  BACKEND_STATE_KEY: 'dev_integrity.tfstate'
-  RESOURCE_GROUP_NAME: 'integrity-dev-eus-rg-01'
-  VM_NAME: 'integrity-dev-eus-vm-app-01'
-  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-  ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+permissions:
+  contents: read
+  id-token: write
 
 jobs:
-  # =========================================================================
-  # JOB 1: SECURITY SCAN
-  # =========================================================================
-  SecurityScan:
-    name: 'Security Scan'
-    if: startsWith(github.ref, 'refs/heads/feature/') || startsWith(github.head_ref, 'feature/')
+  terraform-plan:
+    name: Terraform Plan
     runs-on: ubuntu-latest
+
     defaults:
       run:
-        working-directory: ${{ env.WORKING_DIR }}
+        working-directory: environments/prod
+
     steps:
+
+      # Step 1: Checkout repository
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Python (For Checkov)
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
+      # Step 2: Install Terraform
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 'latest'
 
+      # Step 3: Login to Azure using OIDC
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # Step 4: Check Terraform formatting
       - name: Terraform Format Check
         run: terraform fmt -check -recursive
 
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
+      # Step 5: Initialize Terraform
       - name: Terraform Init
-        run: |
-          terraform init \
-            -backend-config="resource_group_name=${{ env.BACKEND_RESOURCE_GROUP }}" \
-            -backend-config="storage_account_name=${{ env.BACKEND_STORAGE_ACCOUNT }}" \
-            -backend-config="container_name=${{ env.BACKEND_CONTAINER }}" \
-            -backend-config="key=${{ env.BACKEND_STATE_KEY }}"
+        run: terraform init -input=false
 
+      # Step 6: Validate Terraform code
       - name: Terraform Validate
         run: terraform validate
 
-      - name: Run tfsec Scan
-        uses: aquasecurity/tfsec-action@v1.0.3
-        with:
-          working_directory: ${{ env.WORKING_DIR }}
-          soft_fail: true
-
-      - name: Install & Run Checkov Scan
-        continue-on-error: true
-        run: |
-          pip install --upgrade pip
-          pip install checkov
-          checkov -d .
-
-      - name: Create Security Terraform Plan
-        run: terraform plan -out=security.tfplan
-
-      - name: Convert Security Plan to JSON
-        run: terraform show -json security.tfplan > security-plan.json
-
-      - name: Setup Infracost
-        uses: infracost/actions/setup@v3
-        with:
-          api_key: ${{ secrets.INFRACOST_API_KEY }}
-
-      - name: Run Infracost Breakdown
-        continue-on-error: true
-        run: infracost breakdown --path=security-plan.json
-
-  # =========================================================================
-  # JOB 2: TERRAFORM PLAN
-  # =========================================================================
-  TerraformPlan:
-    name: 'Terraform Plan'
-    needs: SecurityScan
-    if: startsWith(github.ref, 'refs/heads/feature/') || startsWith(github.head_ref, 'feature/')
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ${{ env.WORKING_DIR }}
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 'latest'
-
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Terraform Init
-        run: |
-          terraform init \
-            -backend-config="resource_group_name=${{ env.BACKEND_RESOURCE_GROUP }}" \
-            -backend-config="storage_account_name=${{ env.BACKEND_STORAGE_ACCOUNT }}" \
-            -backend-config="container_name=${{ env.BACKEND_CONTAINER }}" \
-            -backend-config="key=${{ env.BACKEND_STATE_KEY }}"
-
-      - name: Terraform Validate
-        run: terraform validate
-
-      - name: Create Feature Terraform Plan
-        run: terraform plan -out=feature.tfplan
-
-  # =========================================================================
-  # JOB 3: TERRAFORM APPLY
-  # =========================================================================
-  TerraformApply:
-    name: 'Terraform Apply'
-    needs: []
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    environment: Dev
-    defaults:
-      run:
-        working-directory: ${{ env.WORKING_DIR }}
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 'latest'
-
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Terraform Init
-        run: |
-          terraform init \
-            -backend-config="resource_group_name=${{ env.BACKEND_RESOURCE_GROUP }}" \
-            -backend-config="storage_account_name=${{ env.BACKEND_STORAGE_ACCOUNT }}" \
-            -backend-config="container_name=${{ env.BACKEND_CONTAINER }}" \
-            -backend-config="key=${{ env.BACKEND_STATE_KEY }}"
-
-      - name: Terraform Validate
-        run: terraform validate
-
-      - name: Create Fresh Main Terraform Plan
-        run: terraform plan -out=main.tfplan
-
-      - name: Apply Main Terraform Plan
-        run: terraform apply -auto-approve main.tfplan
-
-  # =========================================================================
-  # JOB 4: RESOURCE VERIFICATION
-  # =========================================================================
-  ResourceVerification:
-    name: 'Resource Verification'
-    needs: TerraformApply
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ${{ env.WORKING_DIR }}
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 'latest'
-
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Terraform Init
-        run: |
-          terraform init \
-            -backend-config="resource_group_name=${{ env.BACKEND_RESOURCE_GROUP }}" \
-            -backend-config="storage_account_name=${{ env.BACKEND_STORAGE_ACCOUNT }}" \
-            -backend-config="container_name=${{ env.BACKEND_CONTAINER }}" \
-            -backend-config="key=${{ env.BACKEND_STATE_KEY }}"
-
-      - name: Verify Terraform State Non-Empty
-        run: |
-          echo "Checking Terraform state list..."
-          RESOURCE_LIST=$(terraform state list)
-          echo "State List Output:"
-          echo "$RESOURCE_LIST"
-
-          RESOURCE_COUNT=$(echo "$RESOURCE_LIST" | grep -v '^\s*$' | wc -l)
-          echo "Total Resources Found: $RESOURCE_COUNT"
-
-          if [ "$RESOURCE_COUNT" -le 0 ]; then
-            echo "ERROR: Terraform state is empty! Verification failed."
-            exit 1
-          fi
-          echo "Terraform state is non-empty."
-
-      - name: Verify Target Virtual Machine Power State
-        uses: azure/CLI@v2
-        with:
-          inlineScript: |
-            echo "Checking VM '${{ env.VM_NAME }}' in Resource Group '${{ env.RESOURCE_GROUP_NAME }}'..."
-
-            AZ_VM_SHOW=$(az vm show --resource-group "${{ env.RESOURCE_GROUP_NAME }}" --name "${{ env.VM_NAME }}" --show-details -o json)
-            if [ -z "$AZ_VM_SHOW" ]; then
-              echo "ERROR: Target VM '${{ env.VM_NAME }}' not found in Resource Group '${{ env.RESOURCE_GROUP_NAME }}'."
-              exit 1
-            fi
-
-            POWER_STATE=$(echo "$AZ_VM_SHOW" | jq -r '.powerState // empty')
-            if [ -z "$POWER_STATE" ]; then
-              POWER_STATE=$(echo "$AZ_VM_SHOW" | grep -o '"powerState": "[^"]*"' | cut -d'"' -f4)
-            fi
-
-            echo "Target VM Power State: $POWER_STATE"
-
-            if [ "$POWER_STATE" != "VM running" ]; then
-              echo "ERROR: Target VM '${{ env.VM_NAME }}' is not running! Current power state: '$POWER_STATE'."
-              exit 1
-            fi
-
-            echo "SUCCESS: Target VM '${{ env.VM_NAME }}' exists and is in 'VM running' state."
+      # Step 7: Terraform Plan ONLY
+      - name: Terraform Plan
+        run: terraform plan -input=false -no-color
