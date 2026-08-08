@@ -60,9 +60,9 @@ jobs:
       # INFRACOST
       # --------------------------------------------------------
       - name: Setup Infracost
-  uses: infracost/actions/setup@v3
-  with:
-    api-key: ${{ secrets.INFRACOST_API_KEY }}
+        uses: infracost/actions/setup@v3
+        with:
+          api-key: ${{ secrets.INFRACOST_API_KEY }}
 
       - name: Run Infracost
         env:
