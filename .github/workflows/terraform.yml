@@ -13,7 +13,7 @@ jobs:
   # ============================================================
   security-scan:
     name: Security Scan
-    runs-on: ubuntu-latest
+    runs-on: DESKTOP-GJ4I3V4
 
     defaults:
       run:
