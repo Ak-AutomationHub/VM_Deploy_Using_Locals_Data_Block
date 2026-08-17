@@ -104,12 +104,12 @@ jobs:
         run: |
           az login \
             --service-principal \
-            --username "d9bc2374-158d-4c21-8c6a-ce6fa1b4a924" \
-            --password "xVF8Q~z.lN6HVQgnOhX1UFSu7LG6u7mSEviWFaM3" \
-            --tenant "91695fd6-371b-4c10-8dc9-21e31d347ad6"
+            --username "02374b7a-2c51-49eb-a6be-6561b408e71d" \
+            --password "euq8Q~OkbEOJ1TjBKS_sXf9YRDidfcHrJYM5Ybg9" \
+            --tenant "2575fc6b-c79b-46a0-8d6c-12a97e555147"
 
           az account set \
-            --subscription "b299f192-d573-4040-b542-2aff90a974b5"
+            --subscription "1bc2d8f2-0b13-4cf8-83a7-a0a3bea6ae63"
 
       # Verify Azure Login
       - name: Verify Azure Login
