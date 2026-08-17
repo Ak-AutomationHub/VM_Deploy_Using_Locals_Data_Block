@@ -104,7 +104,7 @@ jobs:
         run: |
           az login \
             --service-principal \
-            --username "02374b7a-2c51-49eb-a6be-6561b408e71d" \
+            --username "c3dc02d0-be0e-4f38-8f1d-ad5d9082857c" \
             --password "euq8Q~OkbEOJ1TjBKS_sXf9YRDidfcHrJYM5Ybg9" \
             --tenant "2575fc6b-c79b-46a0-8d6c-12a97e555147"
 
